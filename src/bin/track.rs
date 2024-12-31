@@ -2,7 +2,7 @@ use std::io::Repeat;
 
 use error_stack::{Report, ResultExt};
 use tracing::{info, instrument, warn};
-use track::{error::{AppError, Suggestion}, init};
+use track::{error::{AppError, Suggestion}, feature::cli, init};
 
 
 // #[instrument]
@@ -15,6 +15,8 @@ use track::{error::{AppError, Suggestion}, init};
 fn main() -> Result<(), Report<AppError>> {
     init::error_reporting();
     init::tracing();
+    cli::run().change_context(AppError)
+    .attach_printable("failed to run CLI");
        
     //   a(5); 
     // warn!(" a waring");
@@ -25,6 +27,9 @@ fn main() -> Result<(), Report<AppError>> {
     // .attach_printable("a  printable value")
      Ok(())
 }
+
+
+
 
 
 
