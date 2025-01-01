@@ -1,9 +1,13 @@
-use std::{
-    fmt::Result as FmtResult, fs::OpenOptions, io::{Read, Write}, path::{Path, PathBuf}, vec,
-};
+use super::{EndTime, StartTime, TimeRecord};
 use error_stack::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
-use super::{EndTime, StartTime, TimeRecord};
+use std::{
+    fmt::Result as FmtResult,
+    fs::OpenOptions,
+    io::{Read, Write},
+    path::{Path, PathBuf},
+    vec,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct LockfileData {
@@ -25,6 +29,12 @@ impl FlatfileDatabase {
 #[error("filesystem tracker error")]
 pub struct FlatFileTrackerError;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum StartupStatus {
+    Running,
+    Started,
+}
+
 pub struct FlatFileTracker {
     db: PathBuf,
     lockfile: PathBuf,
@@ -41,10 +51,16 @@ impl FlatFileTracker {
         Self { db, lockfile }
     }
 
-    pub fn start(&self) -> Result<(), FlatFileTrackerError> {
+    pub fn start(&self) -> Result<StartupStatus, FlatFileTrackerError> {
+        if self.is_running() {
+            return Ok(StartupStatus::Running);
+        }
+
         let lockfile_data = {
             let start_time = StartTime::now();
-            let data = LockfileData { startTime: start_time };
+            let data = LockfileData {
+                startTime: start_time,
+            };
             serde_json::to_string(&data)
                 .change_context(FlatFileTrackerError)
                 .attach_printable("failed to serialize lockfile data")?
@@ -59,7 +75,7 @@ impl FlatFileTracker {
             .write_all(lockfile_data.as_bytes())
             .change_context(FlatFileTrackerError)
             .attach_printable("failed to write lockfile data")?;
-        Ok(())
+        return Ok(StartupStatus::Started);
     }
 
     pub fn is_running(&self) -> bool {
@@ -138,7 +154,6 @@ where
         .attach_printable("unable to deserialize database data")?)
 }
 
-
 fn read_lockfile<P>(lockfile: P) -> Result<StartTime, FlatFileTrackerError>
 where
     P: AsRef<Path>,
@@ -156,8 +171,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use assert_fs::{fixture::PathChild, TempDir};
     use super::*;
+    use assert_fs::{fixture::PathChild, TempDir};
 
     fn tracking_paths() -> (TempDir, PathBuf, PathBuf) {
         let temp = TempDir::new().unwrap();
@@ -197,5 +212,34 @@ mod tests {
 
         assert!(tracker.records().unwrap().count() > 0);
     }
-}
 
+
+
+    #[test]
+    fn intial_start_returns_already_started_state() {
+        let (_tempdir, lockfile, db) = tracking_paths();
+        let tracker = FlatFileTracker::new(db, lockfile);
+
+   
+        //when the tracker is started again
+        let started = tracker.start().unwrap();
+
+        //Then  already running state is returned
+
+        assert_eq!(started, StartupStatus::Started);
+    }
+
+    #[test]
+    fn multiple_start_returns_already_running_state() {
+        let (_tempdir, lockfile, db) = tracking_paths();
+        let tracker = FlatFileTracker::new(db, lockfile);
+
+        tracker.start().unwrap();
+        //when the tracker is started again
+        let started = tracker.start().unwrap();
+
+        //Then  astarted state is returned
+
+        assert_eq!(started, StartupStatus::Running);
+    }
+}
