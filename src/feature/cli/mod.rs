@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use error_stack::Result;
 
+use crate::feature::tracker::flatfile::FlatFileTracker;
+
 #[derive(Debug, thiserror::Error)]
 #[error("a cli error occured")]
 pub struct CliError;
@@ -20,15 +22,16 @@ struct Cli {
 
 pub fn run() -> Result<(), CliError> {
     let args = Cli::parse();
-
+    let tracker = FlatFileTracker::new("db.json", "lockfile.json");
     match args.command {
         Command::Start => {
             println!("Starting tracking time...");
-            // Add logic to start tracking time
+
+            tracker.start().unwrap();
         }
         Command::Stop => {
             println!("Stopping tracking time...");
-            // Add logic to stop tracking time
+            tracker.stop().unwrap();
         }
         Command::Report => {
             println!("Generating report...");

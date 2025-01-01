@@ -1,8 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-mod flatfile;
-
+pub mod flatfile;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EndTime(DateTime<Utc>);
@@ -11,7 +10,6 @@ impl EndTime {
     pub fn now() -> Self {
         Self(Utc::now())
     }
-    
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
