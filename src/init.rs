@@ -20,17 +20,14 @@ pub fn error_reporting() {
     });
 }
 
-
-pub fn tracing()
-{
+pub fn tracing() {
     use tracing_error::ErrorLayer;
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
     tracing_subscriber::registry()
-    .with(tracing_subscriber::fmt::layer().pretty())
-    .with(EnvFilter::builder().from_env_lossy())
-    .with(ErrorLayer::default())
-    .init();
-
+        .with(tracing_subscriber::fmt::layer().pretty())
+        .with(EnvFilter::builder().from_env_lossy())
+        .with(ErrorLayer::default())
+        .init();
 }
 
