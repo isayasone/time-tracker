@@ -1,9 +1,9 @@
-use super::{EndTime, StartTime, TimeRecord};
+use super::{EndTime, StartTime, StartupStatus, TimeRecord, Tracker, TrackerError};
 use error_stack::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Result as FmtResult,
-    fs::OpenOptions,
+    fs::{File, OpenOptions},
     io::{Read, Write},
     path::{Path, PathBuf},
     vec,
@@ -29,12 +29,6 @@ impl FlatfileDatabase {
 #[error("filesystem tracker error")]
 pub struct FlatFileTrackerError;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum StartupStatus {
-    Running,
-    Started,
-}
-
 pub struct FlatFileTracker {
     db: PathBuf,
     lockfile: PathBuf,
@@ -51,11 +45,10 @@ impl FlatFileTracker {
         Self { db, lockfile }
     }
 
-    pub fn start(&self) -> Result<StartupStatus, FlatFileTrackerError> {
+    fn start_impl(&self) -> Result<StartupStatus, FlatFileTrackerError> {
         if self.is_running() {
             return Ok(StartupStatus::Running);
         }
-
         let lockfile_data = {
             let start_time = StartTime::now();
             let data = LockfileData {
@@ -65,7 +58,6 @@ impl FlatFileTracker {
                 .change_context(FlatFileTrackerError)
                 .attach_printable("failed to serialize lockfile data")?
         };
-
         OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -78,11 +70,7 @@ impl FlatFileTracker {
         return Ok(StartupStatus::Started);
     }
 
-    pub fn is_running(&self) -> bool {
-        self.lockfile.exists()
-    }
-
-    pub fn stop(&self) -> Result<(), FlatFileTrackerError> {
+    fn stop_impl(&self) -> Result<(), FlatFileTrackerError> {
         let start = read_lockfile(&self.lockfile)?;
 
         let end = EndTime::now();
@@ -97,9 +85,23 @@ impl FlatFileTracker {
             .attach_printable("unable to remove lockfile")?;
         Ok(())
     }
+}
 
-    pub fn records(&self) -> Result<impl Iterator<Item = TimeRecord>, FlatFileTrackerError> {
-        let db = load_database(&self.db)?;
+impl Tracker for FlatFileTracker {
+    fn start(&self) -> Result<StartupStatus, TrackerError> {
+        self.start_impl().change_context(TrackerError)
+    }
+
+    fn is_running(&self) -> bool {
+        self.lockfile.exists()
+    }
+
+    fn stop(&self) -> Result<(), TrackerError> {
+        self.stop_impl().change_context(TrackerError)
+    }
+
+    fn records(&self) -> Result<impl Iterator<Item = TimeRecord>, TrackerError> {
+        let db = load_database(&self.db).change_context(TrackerError)?;
 
         Ok(db.records.into_iter())
     }
@@ -129,7 +131,7 @@ fn load_database<P>(db: P) -> Result<FlatfileDatabase, FlatFileTrackerError>
 where
     P: AsRef<Path>,
 {
-    if !db.as_ref().exists() {
+    if (!db.as_ref().exists()) {
         // Return an empty database if the file does not exist
         return Ok(FlatfileDatabase::default());
     }
@@ -213,14 +215,11 @@ mod tests {
         assert!(tracker.records().unwrap().count() > 0);
     }
 
-
-
     #[test]
     fn intial_start_returns_already_started_state() {
         let (_tempdir, lockfile, db) = tracking_paths();
         let tracker = FlatFileTracker::new(db, lockfile);
 
-   
         //when the tracker is started again
         let started = tracker.start().unwrap();
 

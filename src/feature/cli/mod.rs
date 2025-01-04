@@ -1,7 +1,10 @@
 use clap::{Parser, Subcommand};
 use error_stack::Result;
 
-use crate::feature::tracker::flatfile::{FlatFileTracker, StartupStatus};
+
+use crate::feature::tracker::Tracker;
+
+use super::tracker::{flatfile::FlatFileTracker, StartupStatus};
 
 #[derive(Debug, thiserror::Error)]
 #[error("a cli error occured")]
