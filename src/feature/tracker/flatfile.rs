@@ -88,7 +88,7 @@ impl FlatFileTracker {
 }
 
 impl Tracker for FlatFileTracker {
-    fn start(&self) -> Result<StartupStatus, TrackerError> {
+    fn start(&mut self) -> Result<StartupStatus, TrackerError> {
         self.start_impl().change_context(TrackerError)
     }
 
@@ -96,7 +96,7 @@ impl Tracker for FlatFileTracker {
         self.lockfile.exists()
     }
 
-    fn stop(&self) -> Result<(), TrackerError> {
+    fn stop(&mut self) -> Result<(), TrackerError> {
         self.stop_impl().change_context(TrackerError)
     }
 
@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn is_running_true_after_starting_tracker() {
         let (_tempdir, lockfile, db) = tracking_paths();
-        let tracker = FlatFileTracker::new(db, lockfile);
+        let mut  tracker = FlatFileTracker::new(db, lockfile);
 
         tracker.start().unwrap();
 
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn is_running_false_after_stopping_tracker() {
         let (_tempdir, lockfile, db) = tracking_paths();
-        let tracker = FlatFileTracker::new(db, lockfile);
+        let mut tracker = FlatFileTracker::new(db, lockfile);
 
         tracker.start().unwrap();
         tracker.stop().unwrap();
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn time_record_created_when_tracking_stops() {
         let (_tempdir, lockfile, db) = tracking_paths();
-        let tracker = FlatFileTracker::new(db, lockfile);
+        let mut tracker = FlatFileTracker::new(db, lockfile);
 
         tracker.start().unwrap();
         tracker.stop().unwrap();
@@ -218,7 +218,7 @@ mod tests {
     #[test]
     fn intial_start_returns_already_started_state() {
         let (_tempdir, lockfile, db) = tracking_paths();
-        let tracker = FlatFileTracker::new(db, lockfile);
+        let mut tracker = FlatFileTracker::new(db, lockfile);
 
         //when the tracker is started again
         let started = tracker.start().unwrap();
@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn multiple_start_returns_already_running_state() {
         let (_tempdir, lockfile, db) = tracking_paths();
-        let tracker = FlatFileTracker::new(db, lockfile);
+        let mut tracker = FlatFileTracker::new(db, lockfile);
 
         tracker.start().unwrap();
         //when the tracker is started again

@@ -25,7 +25,7 @@ struct Cli {
 
 pub fn run() -> Result<(), CliError> {
     let args = Cli::parse();
-    let tracker = FlatFileTracker::new("db.json", "lockfile.json");
+    let mut  tracker = FlatFileTracker::new("db.json", "lockfile.json");
     match args.command {
         Command::Start => {
             let state = tracker.start().unwrap();
