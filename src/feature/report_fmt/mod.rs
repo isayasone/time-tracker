@@ -18,8 +18,6 @@ impl DurationFormat for HMSFormatter {
 mod tests {
     use std::time::Duration;
 
-    use assert_cmd::assert;
-
     use super::*;
 
     #[test]

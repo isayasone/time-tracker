@@ -1,4 +1,6 @@
-use super::{EndTime, StartTime, StartupStatus, TimeRecord, Tracker, TrackerError};
+use super::{
+    reporter::Reporter, EndTime, StartTime, StartupStatus, TimeRecord, Tracker, TrackerError,
+};
 use error_stack::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -87,6 +89,7 @@ impl FlatFileTracker {
     }
 }
 
+impl Reporter for FlatFileTracker {}
 impl Tracker for FlatFileTracker {
     fn start(&mut self) -> Result<StartupStatus, TrackerError> {
         self.start_impl().change_context(TrackerError)
@@ -131,7 +134,7 @@ fn load_database<P>(db: P) -> Result<FlatfileDatabase, FlatFileTrackerError>
 where
     P: AsRef<Path>,
 {
-    if (!db.as_ref().exists()) {
+    if !db.as_ref().exists() {
         // Return an empty database if the file does not exist
         return Ok(FlatfileDatabase::default());
     }
@@ -186,7 +189,7 @@ mod tests {
     #[test]
     fn is_running_true_after_starting_tracker() {
         let (_tempdir, lockfile, db) = tracking_paths();
-        let mut  tracker = FlatFileTracker::new(db, lockfile);
+        let mut tracker = FlatFileTracker::new(db, lockfile);
 
         tracker.start().unwrap();
 

@@ -1,8 +1,9 @@
+use std::{path::PathBuf, time::Duration};
+
 use clap::{Parser, Subcommand};
-use error_stack::Result;
+use error_stack::{Result, ResultExt};
 
-
-use crate::feature::tracker::Tracker;
+use crate::{error::Suggestion, feature::tracker::Tracker};
 
 use super::tracker::{flatfile::FlatFileTracker, StartupStatus};
 
@@ -16,21 +17,27 @@ pub enum Command {
     Stop,
     Report,
 }
-#[derive(Debug, Clone, Copy, Parser)]
-#[command(version, about,arg_required_else_help(true),long_about = None)]
+#[derive(Debug, Clone, Parser)]
+#[command(version, about,arg_required_else_help(true))]
 struct Cli {
+    #[arg(short = 'd', long)]
+    pub db_dir: Option<PathBuf>,
+    #[arg(short = 'l', long)]
+    pub lockfile: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Command,
 }
 
 pub fn run() -> Result<(), CliError> {
     let args = Cli::parse();
-    let mut  tracker = FlatFileTracker::new("db.json", "lockfile.json");
+    let db_dir = flatfile_db_dir(&args)?;
+    let lockfile = lockfile_path(&args)?;
+    let mut tracker = FlatFileTracker::new(db_dir, lockfile);
     match args.command {
         Command::Start => {
             let state = tracker.start().unwrap();
             if state == StartupStatus::Running {
-                println!(" tracking already started");
+                println!("Tracking already started");
             } else {
                 println!("Starting tracking time...");
             }
@@ -41,9 +48,49 @@ pub fn run() -> Result<(), CliError> {
         }
         Command::Report => {
             println!("Generating report...");
-            // Add logic to generate report
+            // Add logic to generate and print the report
         }
     }
 
     Ok(())
+}
+
+fn lockfile_path(args: &Cli) -> Result<PathBuf, CliError> {
+    match &args.lockfile {
+        Some(lockfile) => Ok(lockfile.clone()),
+        None => {
+            let mut lockfile = dirs::cache_dir()
+                .ok_or(CliError)
+                .attach_printable("failed to discover cache directory")
+                .attach(Suggestion("use the -l flag to specify a lockfile path"))?;
+
+            lockfile.push("track");
+
+            std::fs::create_dir_all(&lockfile)
+                .change_context(CliError)
+                .attach_printable("failed  to created 'track' locfile dirctory ")?;
+            lockfile.push("lockfile.json");
+            Ok(lockfile)
+        }
+    }
+}
+
+fn flatfile_db_dir(args: &Cli) -> Result<PathBuf, CliError> {
+    match &args.db_dir {
+        Some(db_dir) => Ok(db_dir.clone()),
+        None => {
+            let mut db_dirs = dirs::data_dir()
+                .ok_or(CliError)
+                .attach_printable("failed to discover data directory")
+                .attach(Suggestion("use the -d flag to specify a database path"))?;
+
+            db_dirs.push("track");
+
+            std::fs::create_dir_all(&db_dirs)
+                .change_context(CliError)
+                .attach_printable("failed  to created 'track' db dirctory ")?;
+            db_dirs.push("records.json");
+            Ok(db_dirs)
+        }
+    }
 }

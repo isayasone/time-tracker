@@ -15,7 +15,7 @@ enum ReportTimespan {
 struct ReporterError;
 
 pub trait Reporter: Tracker {
-    fn total_duration(&self, timespan: ReportTimespan) -> Result<Duration, ReporterError> {
+     fn total_duration(&self, timespan: ReportTimespan) -> Result<Duration, ReporterError> {
         match timespan {
             ReportTimespan::Last(timespan) => {
                 let target = (Utc::now() - timespan).timestamp_millis();
@@ -82,7 +82,9 @@ mod tests {
 
 #[cfg(test)]
 mod ttlib {
-    use crate::feature::tracker::{EndTime, StartTime, StartupStatus, TimeRecord, Tracker, TrackerError};
+    use crate::feature::tracker::{
+        EndTime, StartTime, StartupStatus, TimeRecord, Tracker, TrackerError,
+    };
 
     use super::*;
     #[derive(Debug, Default)]
