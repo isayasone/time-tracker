@@ -5,4 +5,4 @@ pub struct AppError;
 // A suggestion to help the user fix the error
 pub struct Suggestion(pub &'static str);
 
-pub struct ErrorCode(u16);
+pub struct ErrorCode(());

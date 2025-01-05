@@ -1,9 +1,8 @@
 // Application setup
 use crate::error::Suggestion;
-use clap_verbosity_flag::Verbosity;
+
 use error_stack::{fmt::ColorMode, Report};
 use owo_colors::OwoColorize;
-use tracing_log::AsTrace;
 use tracing_subscriber::EnvFilter;
 
 pub fn error_reporting() {
@@ -30,4 +29,3 @@ pub fn tracing() {
         .with(ErrorLayer::default())
         .init();
 }
-

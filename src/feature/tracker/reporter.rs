@@ -1,18 +1,16 @@
 use chrono::Utc;
 use error_stack::Result;
 use error_stack::ResultExt;
-use std::{str, time::Duration};
+use std::{ time::Duration};
 
 use super::Tracker;
-
-#[derive(Debug, Clone, Copy)]
-enum ReportTimespan {
+pub enum ReportTimespan {
     Last(Duration),
 }
 
 #[derive(Debug, thiserror::Error)]
 #[error("filesystem tracker error")]
-struct ReporterError;
+pub struct ReporterError;
 
 pub trait Reporter: Tracker {
      fn total_duration(&self, timespan: ReportTimespan) -> Result<Duration, ReporterError> {

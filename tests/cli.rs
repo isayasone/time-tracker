@@ -49,23 +49,9 @@ fn stop_command_stops_tracking_time() -> TestResult {
     assert!(!lockfile.exists(), "Lockfile should not exist yet.");
     assert!(!db.exists(), "Database file should not exist yet.");
 
-    Command::cargo_bin("track")?
-        .arg("--db-dir")
-        .arg("db.json")
-        .arg("--lockfile")
-        .arg(&lockfile)
-        .arg("start")
-        .assert()
-        .success();
+    start_tracking(&lockfile)?;
 
-    Command::cargo_bin("track")?
-        .arg("--db-dir")
-        .arg("db.json")
-        .arg("--lockfile")
-        .arg(&lockfile)
-        .arg("stop")
-        .assert()
-        .success();
+    stop_tracking(&lockfile)?;
 
     assert!(!lockfile.exists());
     // assert!(db.exists());
@@ -76,15 +62,47 @@ fn stop_command_stops_tracking_time() -> TestResult {
 #[test]
 
 fn report_command_generates_report() -> TestResult {
-    Command::cargo_bin("track")?.arg("start").assert().success();
-    Command::cargo_bin("track")?.arg("stop").assert().success();
+    let (tempdir, lockfile, db) = tracking_paths();
+
+    assert!(!lockfile.exists(), "Lockfile should not exist yet.");
+    assert!(!db.exists(), "Database file should not exist yet.");
+
+    start_tracking(&lockfile)?;
+
+    stop_tracking(&lockfile)?;
+
     Command::cargo_bin("track")?
+        .arg("--db-dir")
+        .arg("db.json")
+        .arg("--lockfile")
+        .arg(&lockfile)
         .arg("report")
         .assert()
-        .stdout("00:00:00/n")
+        .stdout("00:00:00\n")
         .success();
+    Ok(())
+}
 
-    todo!("");
-    #[allow(unreachable_code)]
+fn stop_tracking(lockfile: &PathBuf) -> Result<(), testresult::TestError> {
+    Command::cargo_bin("track")?
+        .arg("--db-dir")
+        .arg("db.json")
+        .arg("--lockfile")
+        .arg(lockfile)
+        .arg("stop")
+        .assert()
+        .success();
+    Ok(())
+}
+
+fn start_tracking(lockfile: &PathBuf) -> Result<(), testresult::TestError> {
+    Command::cargo_bin("track")?
+        .arg("--db-dir")
+        .arg("db.json")
+        .arg("--lockfile")
+        .arg(&lockfile)
+        .arg("start")
+        .assert()
+        .success();
     Ok(())
 }

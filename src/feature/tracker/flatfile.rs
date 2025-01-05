@@ -4,16 +4,14 @@ use super::{
 use error_stack::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt::Result as FmtResult,
-    fs::{File, OpenOptions},
+    fs::OpenOptions,
     io::{Read, Write},
     path::{Path, PathBuf},
-    vec,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct LockfileData {
-    startTime: StartTime,
+    start_time: StartTime,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -35,6 +33,7 @@ pub struct FlatFileTracker {
     db: PathBuf,
     lockfile: PathBuf,
 }
+impl Reporter for FlatFileTracker {}
 
 impl FlatFileTracker {
     pub fn new<D, L>(db: D, lockfile: L) -> Self
@@ -53,9 +52,7 @@ impl FlatFileTracker {
         }
         let lockfile_data = {
             let start_time = StartTime::now();
-            let data = LockfileData {
-                startTime: start_time,
-            };
+            let data = LockfileData { start_time };
             serde_json::to_string(&data)
                 .change_context(FlatFileTrackerError)
                 .attach_printable("failed to serialize lockfile data")?
@@ -69,7 +66,7 @@ impl FlatFileTracker {
             .write_all(lockfile_data.as_bytes())
             .change_context(FlatFileTrackerError)
             .attach_printable("failed to write lockfile data")?;
-        return Ok(StartupStatus::Started);
+        Ok(StartupStatus::Started)
     }
 
     fn stop_impl(&self) -> Result<(), FlatFileTrackerError> {
@@ -89,7 +86,6 @@ impl FlatFileTracker {
     }
 }
 
-impl Reporter for FlatFileTracker {}
 impl Tracker for FlatFileTracker {
     fn start(&mut self) -> Result<StartupStatus, TrackerError> {
         self.start_impl().change_context(TrackerError)
@@ -154,9 +150,10 @@ where
         return Ok(FlatfileDatabase::default());
     }
 
-    Ok(serde_json::from_str(&db_buf)
+    let res = serde_json::from_str(&db_buf)
         .change_context(FlatFileTrackerError)
-        .attach_printable("unable to deserialize database data")?)
+        .attach_printable("unable to deserialize database data")?;
+    Ok(res)
 }
 
 fn read_lockfile<P>(lockfile: P) -> Result<StartTime, FlatFileTrackerError>
@@ -171,7 +168,7 @@ where
     let data: LockfileData = serde_json::from_reader(file)
         .change_context(FlatFileTrackerError)
         .attach_printable("unable to deserialize lockfile data")?;
-    Ok(data.startTime)
+    Ok(data.start_time)
 }
 
 #[cfg(test)]

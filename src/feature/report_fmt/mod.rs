@@ -1,6 +1,6 @@
 #[derive(Default, Debug)]
 pub struct HMSFormatter;
-trait DurationFormat {
+pub trait DurationFormat {
     fn format(&self, duration: std::time::Duration) -> String;
 }
 

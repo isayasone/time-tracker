@@ -3,7 +3,16 @@ use std::{path::PathBuf, time::Duration};
 use clap::{Parser, Subcommand};
 use error_stack::{Result, ResultExt};
 
-use crate::{error::Suggestion, feature::tracker::Tracker};
+use crate::{
+    error::Suggestion,
+    feature::{
+        report_fmt::{DurationFormat, HMSFormatter},
+        tracker::{
+            reporter::{ReportTimespan, Reporter},
+            Tracker,
+        },
+    },
+};
 
 use super::tracker::{flatfile::FlatFileTracker, StartupStatus};
 
@@ -18,7 +27,7 @@ pub enum Command {
     Report,
 }
 #[derive(Debug, Clone, Parser)]
-#[command(version, about,arg_required_else_help(true))]
+#[command(version, about, arg_required_else_help(true))]
 struct Cli {
     #[arg(short = 'd', long)]
     pub db_dir: Option<PathBuf>,
@@ -48,7 +57,16 @@ pub fn run() -> Result<(), CliError> {
         }
         Command::Report => {
             println!("Generating report...");
-            // Add logic to generate and print the report
+            let twenty_four_hours = {
+                const TWENTY_FOUR_HOURS: u64 = 60 * 60 * 24;
+                Duration::from_secs(TWENTY_FOUR_HOURS)
+            };
+            let duration = tracker
+                .total_duration(ReportTimespan::Last(twenty_four_hours))
+                .change_context(CliError)
+                .attach_printable("failed to calculate total track duration")?;
+            let formatter = HMSFormatter::default();
+            print!("{}", formatter.format(duration));
         }
     }
 

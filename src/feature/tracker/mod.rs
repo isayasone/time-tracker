@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use error_stack::Result;
 use serde::{Deserialize, Serialize};
 pub mod flatfile;
-pub mod  reporter;
+pub mod reporter;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EndTime(DateTime<Utc>);
@@ -11,7 +11,7 @@ impl EndTime {
     pub fn now() -> Self {
         Self(Utc::now())
     }
-    pub fn timestamp_millis(&self)->i64{
+    pub fn timestamp_millis(&self) -> i64 {
         self.0.timestamp_millis()
     }
 }
@@ -22,12 +22,10 @@ impl StartTime {
     pub fn now() -> Self {
         Self(Utc::now())
     }
-    
-    pub fn timestamp_millis(&self)->i64{
+
+    pub fn timestamp_millis(&self) -> i64 {
         self.0.timestamp_millis()
     }
-
- 
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -52,5 +50,5 @@ pub trait Tracker {
 
     fn stop(&mut self) -> Result<(), TrackerError>;
 
-    fn records(&self) -> Result<impl Iterator<Item = TimeRecord>,  TrackerError>;
+    fn records(&self) -> Result<impl Iterator<Item = TimeRecord>, TrackerError>;
 }
